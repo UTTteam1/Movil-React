@@ -4,6 +4,9 @@ import axios from "axios";
 
 import Pagination from '@mui/material/Pagination';
 
+import Swal from 'sweetalert2';
+import alertify from 'alertifyjs';
+import 'alertifyjs/build/css/alertify.css';
 
 // Grid
 import Button from '@mui/material/Button';
@@ -28,12 +31,11 @@ export default function PaginationArticulos() {
     const [page, setPage] = useState(1);
     const PER_PAGE = 12;
 
-    //const [list, setList] = useState([]);
-    let dataBuy = []
+    const [list, setList] = useState([]);
 
 
     const AddCod = (cod, precio) => {
-        
+
         var cant = document.getElementById(cod).value;
         if (cant != 0) {
             //var x = '{"cod_barras":"' + cod + '","cantidad":' + cant + ',"precioUnidad":' + precio + '}';
@@ -43,59 +45,115 @@ export default function PaginationArticulos() {
                 precioUnidad: precio
             }
             //setList(current => [...current, Json.stringify(x)])
-            //setList(current => [...current, x2])
-            dataBuy.push(x2)
-            window.alert("Agregado carrito");
-        }else{
-            window.alert("No se puede agregar vacios al carrito");
+            setList(current => [...current, x2])
+            alertify.success('Agregado al carrito');
+        } else {
+            alertify.error("No se puede agregar vacios al carrito");
         }
 
     };
 
     const get = () => {
-        if (dataBuy.length > 0) {
-            window.alert("En su carrito tiene: \n" + dataBuy.map(a=>a.cod_barras));
+        if (list.length > 0) {
+            //window.alert("En su carrito tiene: \n" + list.map(a=>a.cod_barras));
+            let FormCar = `<form>`
+            list.forEach(articulo => {
+                FormCar += `
+                    <div class="form-floating">
+                        <select class="form-select" id="Cant_${articulo.cod_barras}" aria-label="Floating label select example">
+                            <option value="${articulo.cantidad}" selected>${articulo.cantidad}</option>    
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                            <option value="7">7</option>
+                            <option value="8">8</option>
+                            <option value="9">9</option>
+                            <option value="10">10</option>
+                        </select>
+                        <label for="floatingSelect">Cantidad del producto "${articulo.cod_barras}"</label>
+                    </div>
+                    <hr>
+                `
+            });
+            FormCar += `
+                </form>
+            `
+            let nList = []
+
+            Swal.fire({
+                title: 'Editar carrito',
+                html: FormCar,
+                showCloseButton: true,
+                confirmButtonText: 'Actualizar',
+                preConfirm: (login) => {
+                    list.forEach(articulo => {
+                        let newArt = {
+                            cod_barras: articulo.cod_barras,
+                            cantidad: document.getElementById('Cant_' + articulo.cod_barras).value,
+                            precioUnidad: articulo.cantidad
+                        }
+                        nList.push(newArt);
+                    });
+                },
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    var i = 0;
+                    nList.forEach(art => {
+                        if (i == 0) {
+                            setList([art]);
+                        } else {
+                            setList(current => [...current, art])
+                        }
+                        i += 1;
+                    });
+                    nList.length = 0;
+                    alertify.success('Carrito Actualizado');
+                }
+            })
         } else {
-            window.alert("No hay nada en su carrito");
+            alertify.warning("No hay nada en su carrito");
         }
-    }
+    };
 
     const vaciar = () => {
-        if(dataBuy.length>0){
-            dataBuy.length = 0;
-            window.alert("Se vacio el carrito");
-        }else{
-            window.alert("No hay nada en su carrito que se pueda eliminar");
+        if (list.length > 0) {
+            list.length = 0;
+            alertify.warning("Se vacio el carrito");
+        } else {
+            alertify.warning("No hay nada en su carrito que se pueda eliminar");
         }
-    }
+    };
 
     const comprar = () => {
-        if (dataBuy.length > 0) {
-            var data = JSON.stringify(dataBuy);
-            
+        if (list.length > 0) {
+            var data = JSON.stringify(list);
+
             var config = {
                 method: 'post',
                 url: 'http://localhost:1921/api/venta',
-                headers: { 
-                  'Content-Type': 'application/json'
+                headers: {
+                    'Content-Type': 'application/json'
                 },
-                data : data
-              };
-              
-              console.log(data);
-              axios(config)
-              .then(function (response) {
-                console.log(JSON.stringify(response.data));
-                dataBuy.length = 0;
-                window.alert("Su compra fue procesada");
-              })
-              .catch(function (error) {
-                console.log(error);
-                window.alert("Su compra no pudo ser procesada");
-              });
-              
+                data: data
+            };
+
+            console.log(data);
+            axios(config)
+                .then(function (response) {
+                    console.log(JSON.stringify(response.data));
+                    list.length = 0;
+                    alertify.success("Su compra fue procesada");
+                })
+                .catch(function (error) {
+                    console.log(error);
+                    alertify.error("Su compra no pudo ser procesada");
+                });
+
         } else {
-            window.alert("Primero Agrege al carrito");
+            alertify.warning("Primero Agrege al carrito");
         }
     };
 
